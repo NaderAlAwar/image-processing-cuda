@@ -1,18 +1,23 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "image.h"
 #include "filters/blur_filter.h"
-#include "consts.h"
-#include "load_image.h"
+
+const char* BLUR_FILTER = "blur";
+const char* SHARPEN_FILTER = "sharpen";
+const char* VERTICAL_FLIP_FILTER = "vflip";
+const char* HORIZONTAL_FLIP_FILTER = "hflip";
 
 int main(int argc, const char* argv[]) {
-    if (argc != 3) {
+    if (argc != 4) {
         printf("Incorrect number of arguments.\n");
         return 1;
     }
 
     const char* path_to_image = argv[1];
-    const char* filter = argv[2];
+    const char* output_image = argv[2];
+    const char* filter = argv[3];
 
     printf("Applying filter %s to image %s.\n", filter, path_to_image);
 
@@ -40,7 +45,7 @@ int main(int argc, const char* argv[]) {
         printf("Invalid filter %s.\n", filter);
     }
 
-    writeImage("out.png", image, width, height, channels);
+    writeImage(output_image, image, width, height, channels);
     imageFree(image);
     
     return 0;
