@@ -3,11 +3,16 @@
 
 #include "image.h"
 #include "filters/blur_filter.h"
+#include "filters/sharpen_filter.h"
+#include "filters/vertical_flip_filter.h"
+#include "filters/horizontal_flip_filter.h"
 
 const char* BLUR_FILTER = "blur";
 const char* SHARPEN_FILTER = "sharpen";
 const char* VERTICAL_FLIP_FILTER = "vflip";
 const char* HORIZONTAL_FLIP_FILTER = "hflip";
+
+const int MAX_THREADS = 1024;
 
 int main(int argc, const char* argv[]) {
     if (argc != 4) {
@@ -15,17 +20,17 @@ int main(int argc, const char* argv[]) {
         return 1;
     }
 
-    const char* path_to_image = argv[1];
-    const char* output_image = argv[2];
+    const char* path_to_input_image = argv[1];
+    const char* path_to_output_image = argv[2];
     const char* filter = argv[3];
 
-    printf("Applying filter %s to image %s.\n", filter, path_to_image);
+    printf("Applying filter %s to image %s.\n", filter, path_to_input_image);
 
     int width, height, channels;
-    stbi_uc* image = loadImage(path_to_image, &width, &height, &channels);
+    stbi_uc* image = loadImage(path_to_input_image, &width, &height, &channels);
     
     if (image == NULL) {
-        printf("Could not load image %s.\n", path_to_image);
+        printf("Could not load image %s.\n", path_to_input_image);
         return 1;
     }
 
@@ -45,7 +50,7 @@ int main(int argc, const char* argv[]) {
         printf("Invalid filter %s.\n", filter);
     }
 
-    writeImage(output_image, image, width, height, channels);
+    writeImage(path_to_output_image, image, width, height, channels);
     imageFree(image);
     
     return 0;

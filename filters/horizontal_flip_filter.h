@@ -1,0 +1,4 @@
+#ifndef HORIZONTAL_FLIP_FILTER_H
+#define HORIZONTAL_FLIP_FILTER_H
+
+#endif

@@ -26,7 +26,7 @@ void imageFree(stbi_uc* image) {
     stbi_image_free(image);
 }
 
-void getPixel(stbi_uc* image, int width, int x, int y, Pixel* pixel) {
+__host__ __device__ void getPixel(stbi_uc* image, int width, int x, int y, Pixel* pixel) {
     const stbi_uc* p = image + (STBI_rgb_alpha * (y * width + x));
     pixel->r = p[0];
     pixel->g = p[1];
@@ -34,7 +34,7 @@ void getPixel(stbi_uc* image, int width, int x, int y, Pixel* pixel) {
     pixel->a = p[3];
 }
 
-void printPixel(Pixel* pixel) {
+__host__ __device__ void printPixel(Pixel* pixel) {
     printf("r = %hhu, g = %hhu, b = %hhu, a = %hhu\n", pixel->r, pixel->g, pixel->b, pixel->a);
 }
 
