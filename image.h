@@ -34,6 +34,14 @@ __host__ __device__ void getPixel(stbi_uc* image, int width, int x, int y, Pixel
     pixel->a = p[3];
 }
 
+__host__ __device__ void setPixel(stbi_uc* image, int width, int x, int y, Pixel* pixel) {
+    stbi_uc* p = image + (STBI_rgb_alpha * (y * width + x));
+    p[0] = pixel->r;
+    p[1] = pixel->g;
+    p[2] = pixel->b;
+    p[3] = pixel->a;
+}
+
 __host__ __device__ void printPixel(Pixel* pixel) {
     printf("r = %hhu, g = %hhu, b = %hhu, a = %hhu\n", pixel->r, pixel->g, pixel->b, pixel->a);
 }
