@@ -12,8 +12,6 @@ const char* SHARPEN_FILTER = "sharpen";
 const char* VERTICAL_FLIP_FILTER = "vflip";
 const char* HORIZONTAL_FLIP_FILTER = "hflip";
 
-const int MAX_THREADS = 1024;
-
 int main(int argc, const char* argv[]) {
     if (argc != 4) {
         printf("Incorrect number of arguments.\n");
@@ -34,24 +32,21 @@ int main(int argc, const char* argv[]) {
         return 1;
     }
 
-    Pixel pixel;
-    getPixel(image, width, 5, 5, &pixel);
-    printPixel(&pixel);
-
+    stbi_uc* filtered_image;
     if (strcmp(filter, BLUR_FILTER) == 0) {
-
     } else if (strcmp(filter, SHARPEN_FILTER) == 0) {
-    
+        
     } else if (strcmp(filter, VERTICAL_FLIP_FILTER) == 0) {
-
+        
     } else if (strcmp(filter, HORIZONTAL_FLIP_FILTER) == 0) {
-
+        filtered_image = horizontalFlip(image, width, height, channels);
     } else {
         printf("Invalid filter %s.\n", filter);
     }
 
-    writeImage(path_to_output_image, image, width, height, channels);
+    writeImage(path_to_output_image, filtered_image, width, height, channels);
     imageFree(image);
+    imageFree(filtered_image);
     
     return 0;
 }
