@@ -34,10 +34,11 @@ int main(int argc, const char* argv[]) {
 
     stbi_uc* filtered_image;
     if (strcmp(filter, BLUR_FILTER) == 0) {
+
     } else if (strcmp(filter, SHARPEN_FILTER) == 0) {
         
     } else if (strcmp(filter, VERTICAL_FLIP_FILTER) == 0) {
-        
+        filtered_image = verticalFlip(image, width, height, channels);
     } else if (strcmp(filter, HORIZONTAL_FLIP_FILTER) == 0) {
         filtered_image = horizontalFlip(image, width, height, channels);
     } else {
