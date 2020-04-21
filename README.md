@@ -12,8 +12,8 @@ You can ignore any warnings that are printed to the console. A file named `a.out
 
 To apply a filter to an image, please follow the next steps:
 * Import an image of your choice in the `images` directory, or just use one of the images already there.
-* From the root directory, run `a.out` with the following arguments (see filter arguments in the table):
-```./a.out path_to_image_input path_to_image_output filter_name```
+* From the root directory, run `a.out` with the following arguments (see filter arguments in the table below):
+```./a.out path_to_image_input path_to_image_output filter_arg```
 * Conversely, you can run the following command:
 ```sbatch runs/filter_run``` (please check the `runs` directory to see which file you should call).
 
