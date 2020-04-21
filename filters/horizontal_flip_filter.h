@@ -18,7 +18,7 @@ stbi_uc* horizontalFlip(stbi_uc* input_image, int width, int height, int channel
     cudaMallocManaged(&d_output_image, image_size);
     cudaMemcpy(d_input_image, input_image, image_size, cudaMemcpyHostToDevice);
 
-    int total_threads = width * height / 2;
+    int total_threads = width * height;
     int threads = min(MAX_THREADS, total_threads);
     int blocks = (threads == total_threads) ? 1 : total_threads / MAX_THREADS;
 
@@ -36,19 +36,14 @@ __global__ void horizontalFlip(stbi_uc* input_image, stbi_uc* output_image, int 
         return;
     }
 
-    int y_coordinate = thread_id / (width / 2);
-    int x_coordinate_1 = thread_id % height;
-    int x_coordinate_2 = width - x_coordinate_1;
-    Pixel leftPixel, rightPixel;
+    int y_coordinate = thread_id / width;
+    int old_x_coordinate = thread_id % height;
+    int new_x_coordinate = (width - 1) - old_x_coordinate;
+    // printf("Thread id %d, moving from %d to %d, y is %d\n", thread_id, old_x_coordinate, new_x_coordinate, y_coordinate);
+    Pixel pixel;
 
-    printf("Height = %d\n", height);
-    printf("Width = %d\n", width);
-
-    getPixel(input_image, width, x_coordinate_1, y_coordinate, &leftPixel);
-    getPixel(input_image, width, x_coordinate_2, y_coordinate, &rightPixel);
-
-    setPixel(output_image, width, x_coordinate_1, y_coordinate, &rightPixel);
-    setPixel(output_image, width, x_coordinate_2, y_coordinate, &leftPixel);
+    getPixel(input_image, width, old_x_coordinate, y_coordinate, &pixel);
+    setPixel(output_image, width, new_x_coordinate, y_coordinate, &pixel);
 }
 
 #endif
