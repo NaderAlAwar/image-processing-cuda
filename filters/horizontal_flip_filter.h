@@ -2,8 +2,7 @@
 #define HORIZONTAL_FLIP_FILTER_H
 
 #include "../image.h"
-
-const int MAX_THREADS = 1024;
+#include "util.h"
 
 stbi_uc* horizontalFlip(stbi_uc* input_image, int width, int height, int channels);
 __global__ void horizontalFlip(stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads);
@@ -39,7 +38,6 @@ __global__ void horizontalFlip(stbi_uc* input_image, stbi_uc* output_image, int 
     int y_coordinate = thread_id / width;
     int old_x_coordinate = thread_id % height;
     int new_x_coordinate = (width - 1) - old_x_coordinate;
-    // printf("Thread id %d, moving from %d to %d, y is %d\n", thread_id, old_x_coordinate, new_x_coordinate, y_coordinate);
     Pixel pixel;
 
     getPixel(input_image, width, old_x_coordinate, y_coordinate, &pixel);
