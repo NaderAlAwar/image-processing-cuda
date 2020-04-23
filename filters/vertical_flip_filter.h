@@ -3,7 +3,6 @@
 
 #include "../image.h"
 
-const int THREADS_PER_BLOCK = 1024;
 
 stbi_uc* verticalFlip(stbi_uc* input_image, int width, int height, int channels);
 __global__ void verticalFlip(stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads);
@@ -38,8 +37,8 @@ __global__ void verticalFlip(stbi_uc* input_image, stbi_uc* output_image, int wi
         return;
     }
 
-    int x_coordinate = thread_id / height;
-    int y_coordinate_before = thread_id % width;
+    int x_coordinate = thread_id % height;
+    int y_coordinate_before = thread_id / width;
     int y_coordinate_after = (height - 1) - y_coordinate_before;
 
     Pixel myPixel;
