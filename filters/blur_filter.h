@@ -205,8 +205,8 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
     outPixel.r = avgPixel[0];
     outPixel.g = avgPixel[1];
     outPixel.b = avgPixel[2];
-    // outPixel.a = avgPixel[3];
-    outPixel.a = myCanvas[4].a;
+    outPixel.a = avgPixel[3];
+    // outPixel.a = myCanvas[4].a;
 
     // OPTIONAL: Uncomment the following block and change x and y coordinates to print out the output pixels values
     //           of your choice.
