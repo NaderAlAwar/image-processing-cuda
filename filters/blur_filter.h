@@ -3,7 +3,7 @@
 
 #include "../image.h"
 
-const int THREADS_PER_BLOCK = 1024;
+const int THREADS_PER_BLOCK = 512;
 
 stbi_uc* blur(stbi_uc* input_image, int width, int height, int channels);
 __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads);
@@ -23,9 +23,9 @@ stbi_uc* blur(stbi_uc* input_image, int width, int height, int channels) {
     int blocks = (threads == total_threads) ? 1 : total_threads / THREADS_PER_BLOCK;
 
     printf("Blocks %d, threads %d\n", blocks, threads);
-    size_t limit;
-    cudaDeviceGetLimit(&limit, cudaLimitStackSize);
-    cudaDeviceSetLimit(cudaLimitStackSize, limit * 50);
+    // size_t limit;
+    // cudaDeviceGetLimit(&limit, cudaLimitStackSize);
+    // cudaDeviceSetLimit(cudaLimitStackSize, limit * 50);
     blurKernel<<<blocks, threads>>>(d_input_image, d_output_image, width, height, channels, total_threads);
     cudaDeviceSynchronize();
 
@@ -44,54 +44,150 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
     int x_coordinate = thread_id % height;
     int y_coordinate = thread_id / width;
 
-    int avgPixelSize = 4;
-    int* avgPixel = (int*)malloc(avgPixelSize*sizeof(int));
- 
-    if(x_coordinate == 0) {
-        if(y_coordinate == 0) {
+    const int avgPixelSize = 4;
+    int avgPixel[avgPixelSize];
 
-            int kernelSize = 4;
+    const int kernelSize = 9;
+    float myKernel[kernelSize];
+    Pixel myCanvas[kernelSize];
 
-            Pixel* myKernel = (Pixel*)malloc(kernelSize*sizeof(Pixel));
+    float corner_coef = 0.1111;
+    float adj_coef = 0.1111;
+    float center_coef = 0.1111;
+    float cancel_coef = 1000;
 
-            getPixel(input_image, width, x_coordinate, y_coordinate, &myKernel[0]);
-            getPixel(input_image, width, x_coordinate+1, y_coordinate, &myKernel[1]);
-            getPixel(input_image, width, x_coordinate, y_coordinate+1, &myKernel[2]);
-            getPixel(input_image, width, x_coordinate+1, y_coordinate+1, &myKernel[3]);
+    for(int i = 0; i < kernelSize; i++)
+        myKernel[i] = cancel_coef;
+    
+    for(int i = 0; i < kernelSize; i++) {
+        switch(i) {
 
-            for(int i = 0; i < avgPixelSize; i++) {
-                int sum = 0;
-                for(int j = 0; j < kernelSize; j++) {
-                    switch(i){
-                        case 0: sum += myKernel[j].r;
-                                break;
-                        case 1: sum += myKernel[j].g;
-                                break;
-                        case 2: sum += myKernel[j].b;
-                                break;
-                        case 3: sum += myKernel[j].a;
-                                break;
-                        default: printf("Error assigning sum");
-                                break;
-                    }
+            case 0:
+                if(((x_coordinate - 1) >= 0) && ((y_coordinate - 1) >= 0)) {
+                    myKernel[i] = corner_coef;
+                    getPixel(input_image, width, x_coordinate-1, y_coordinate-1, &myCanvas[i]);
                 }
-                avgPixel[i] = sum/kernelSize;
-            }
+            break;
 
-            printf("red = %d\n", avgPixel[0]);
-            printf("green = %d\n", avgPixel[1]);
-            printf("blue = %d\n", avgPixel[2]);
-            printf("a = %d\n", avgPixel[3]);
+            case 1:
+                if((y_coordinate - 1) >= 0) {
+                    myKernel[i] = adj_coef;
+                    getPixel(input_image, width, x_coordinate, y_coordinate-1, &myCanvas[i]);
+                }
+            break;
+
+            case 2:
+                if(((x_coordinate + 1) < width) && ((y_coordinate - 1) >= 0)) {
+                    myKernel[i] = corner_coef;
+                    getPixel(input_image, width, x_coordinate+1, y_coordinate-1, &myCanvas[i]);
+                }
+            break;
+
+            case 3:
+                if((x_coordinate - 1) >= 0) {
+                    myKernel[i] = adj_coef;
+                    getPixel(input_image, width, x_coordinate-1, y_coordinate, &myCanvas[i]);
+                }
+            break;
+
+            case 4:
+                // No need to check - my cell must be in the kernel.
+                myKernel[i] = center_coef;
+                getPixel(input_image, width, x_coordinate, y_coordinate, &myCanvas[i]);
+            break;
+
+            case 5:
+                if((x_coordinate + 1) < width) {
+                    myKernel[i] = adj_coef;
+                    getPixel(input_image, width, x_coordinate+1, y_coordinate, &myCanvas[i]);
+                }
+            break;
+
+            case 6:
+                if(((x_coordinate - 1) >= 0) && ((y_coordinate + 1) < height)) {
+                    myKernel[i] = corner_coef;
+                    getPixel(input_image, width, x_coordinate-1, y_coordinate+1, &myCanvas[i]);
+                }
+            break;
+
+            case 7:
+                if((y_coordinate + 1) < height) {
+                    myKernel[i] = adj_coef;
+                    getPixel(input_image, width, x_coordinate, y_coordinate+1, &myCanvas[i]);
+                }
+            break;
+
+            case 8:
+                if(((x_coordinate + 1) < width) && ((y_coordinate + 1) < height)) {
+                    myKernel[i] = corner_coef;
+                    getPixel(input_image, width, x_coordinate+1, y_coordinate+1, &myCanvas[i]);
+                }
+            break;
+
+            default:
+                printf("ERROR at first switch case in blur_filter.h.\n");
+            break;
 
         }
     }
 
+    for(int i = 0; i < avgPixelSize; i++) {
+
+        float sum = 0;
+
+        for(int j = 0; j < kernelSize; j++) {
+            if(myKernel[j] != cancel_coef) {
+                switch(i) {
+                    case 0:
+                        sum += myCanvas[j].r * myKernel[j];
+                    break;
+
+                    case 1:
+                        sum += myCanvas[j].g * myKernel[j];
+                    break;
+
+                    case 2:
+                        sum += myCanvas[j].b * myKernel[j];
+                    break;
+
+                    case 3:
+                        sum += myCanvas[j].a * myKernel[j];
+                    break;
+
+                    default:
+                        printf("ERROR at second switch case in blur_filter.h.\n");
+                    break;
+                }
+            }
+
+            else {
+                myCanvas[j].r = 0;
+                myCanvas[j].g = 0;
+                myCanvas[j].b = 0;
+                myCanvas[j].a = 0;
+            }
+
+        }
+
+        avgPixel[i] = (int)sum;
+
+
+    }
+
     Pixel outPixel;
 
-    outPixel.r = (stbi_uc)avgPixel[0];
-    outPixel.g = (stbi_uc)avgPixel[1];
-    outPixel.b = (stbi_uc)avgPixel[2];
-    outPixel.a = (stbi_uc)avgPixel[3];
+    outPixel.r = avgPixel[0];
+    outPixel.g = avgPixel[1];
+    outPixel.b = avgPixel[2];
+    outPixel.a = avgPixel[3];
+
+    if(x_coordinate == 511 && y_coordinate == 0) {
+        printf("\n\nr = %d\n", outPixel.r);
+        printf("g = %d\n", outPixel.g);
+        printf("b = %d\n", outPixel.b);
+        printf("a = %d\n", outPixel.a);
+    }
+
 
     setPixel(output_image, width, x_coordinate, y_coordinate, &outPixel);
 
