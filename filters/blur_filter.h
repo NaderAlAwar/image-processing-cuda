@@ -53,16 +53,23 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
     // Declare a "canvas" of pixels with the same dimensions as the filtering kernel.
     Pixel myCanvas[kernelSize];
 
-    double scalability_factor = 0.003663003663; // Factor to scale the filtering kernel values.
+    // double scalability_factor = 0.003663003663; // Factor to scale the filtering kernel values.
     // double scalability_factor = 0.05; // Factor to scale the filtering kernel values.
 
     // Assign the weights of each filtering kernel value.
-    double center_coef = 41 * scalability_factor;
-    double adj_coef_inner = 26 * scalability_factor;
-    double corner_coef_inner = 16 * scalability_factor;
-    double adj_coef_outer = 7 * scalability_factor;
-    double adj_corner_coef_outer = 4 * scalability_factor;
-    double corner_coef_outer = 1 * scalability_factor;
+    // double center_coef = 41 * scalability_factor;
+    // double adj_coef_inner = 26 * scalability_factor;
+    // double corner_coef_inner = 16 * scalability_factor;
+    // double adj_coef_outer = 7 * scalability_factor;
+    // double adj_corner_coef_outer = 4 * scalability_factor;
+    // double corner_coef_outer = 1 * scalability_factor;
+
+    double center_coef = 0.04;
+    double adj_coef_inner = 0.04;
+    double corner_coef_inner = 0.04;
+    double adj_coef_outer = 0.04;
+    double adj_corner_coef_outer = 0.04;
+    double corner_coef_outer = 0.04;
 
     /* THE 5x5 FILTERING KERNEL
     *
