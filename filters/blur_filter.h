@@ -48,20 +48,21 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
 
     // Declare the 5x5 filtering kernel.
     const int kernelSize = 25;
-    float myKernel[kernelSize];
+    double myKernel[kernelSize];
 
     // Declare a "canvas" of pixels with the same dimensions as the filtering kernel.
     Pixel myCanvas[kernelSize];
 
-    // Assign the weights of each filtering kernel value.
-    float center_coef = 41;
-    float adj_coef_inner = 26;
-    float corner_coef_inner = 16;
-    float adj_coef_outer = 7;
-    float adj_corner_coef_outer = 4;
-    float corner_coef_outer = 1;
+    double scalability_factor = 0.003663003663; // Factor to scale the filtering kernel values.
+    // double scalability_factor = 0.05; // Factor to scale the filtering kernel values.
 
-    float scalability_factor = 1/273; // Factor to scale the filtering kernel values.
+    // Assign the weights of each filtering kernel value.
+    double center_coef = 41 * scalability_factor;
+    double adj_coef_inner = 26 * scalability_factor;
+    double corner_coef_inner = 16 * scalability_factor;
+    double adj_coef_outer = 7 * scalability_factor;
+    double adj_corner_coef_outer = 4 * scalability_factor;
+    double corner_coef_outer = 1 * scalability_factor;
 
     /* THE 5x5 FILTERING KERNEL
     *
@@ -75,12 +76,19 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
 
     // Declare a value for filtering kernel weights to ignore (for cases when working with 
     // a pixel on the edge or in a corner of the image).
-    float cancel_coef = 1000;
+    double cancel_coef = 1000;
 
     // Fill the filtering kernel up with cancelling coefficients.
-    for(int i = 0; i < kernelSize; i++)
+    for(int i = 0; i < kernelSize; i++) {
         myKernel[i] = cancel_coef;
-    
+    }
+
+    // if(x_coordinate == 0 && y_coordinate == 0) {
+    //     for(int i = 0; i < kernelSize; i++) {
+    //         printf("%f\n", myKernel[i]);
+    //     }
+    // }
+
     for(int i = 0; i < kernelSize; i++) {
         // Iterate through each filtering kernel cell and assign weights given the position of the pixel on the image.
         switch(i) {
@@ -270,6 +278,12 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
         }
     }
 
+    if(x_coordinate == 511 && y_coordinate == 0) {
+        for(int i = 0; i < kernelSize; i++) {
+            printf("kernel[%d] = %f\n", i, myKernel[i]);
+        }
+    }
+
     for(int i = 0; i < avgPixelSize; i++) {
         // Iterate through all values of the pixel (R, G, B, and A).
         float weightedSum = 0;
@@ -305,18 +319,24 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
                 }
             }
 
-            else {
-                // If the filtering kernel cell is NOT inside of the picture, assign zero.
-                myCanvas[j].r = 0;
-                myCanvas[j].g = 0;
-                myCanvas[j].b = 0;
-                myCanvas[j].a = 0;
-            }
+            // else {
+            //     // If the filtering kernel cell is NOT inside of the picture, assign zero.
+            //     double valueZero = 0;
+            //     myCanvas[j].r = valueZero;
+            //     myCanvas[j].g = valueZero;
+            //     myCanvas[j].b = valueZero;
+            //     myCanvas[j].a = valueZero;
+            // }
 
         }
 
         // Copy the weighted sum of the specified value to the pixel's specified value.
-        avgPixel[i] = (int)(weightedSum*scalability_factor);
+        avgPixel[i] = (int)(weightedSum);
+
+        if(x_coordinate == 511 && y_coordinate == 0) {
+            printf("avgPixel[%d] = %d\n", i, avgPixel[i]);
+            printf("weightedSum = %f\n", weightedSum);
+        }
 
 
     }
