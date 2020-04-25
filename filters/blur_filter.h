@@ -64,7 +64,7 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
     bool gaussian = false;
 
     if(gaussian) { // Implement Gaussian Blur
-        scalability_factor = 0.003663003663; // Factor to scale the filtering kernel values.
+        scalability_factor = 1.0f/273; // Factor to scale the filtering kernel values.
         center_coef = 41;
         adj_coef_inner = 26;
         corner_coef_inner = 16;
@@ -74,7 +74,7 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
     }
 
     else { // Implement Box Blur
-        scalability_factor = 0.04; // Factor to scale the filtering kernel values.
+        scalability_factor = 1.0f/kernelSize; // Factor to scale the filtering kernel values.
         center_coef = 1;
         adj_coef_inner = 1;
         corner_coef_inner = 1;
@@ -309,22 +309,22 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
                 switch(i) {
                     case 0:
                         // Red value.
-                        weightedSum += (double)myCanvas[j].r * myKernel[j];
+                        weightedSum += myCanvas[j].r * myKernel[j];
                     break;
 
                     case 1:
                         // Green value.
-                        weightedSum += (double)myCanvas[j].g * myKernel[j];
+                        weightedSum += myCanvas[j].g * myKernel[j];
                     break;
 
                     case 2:
                         // Blue value.
-                        weightedSum += (double)myCanvas[j].b * myKernel[j];
+                        weightedSum += myCanvas[j].b * myKernel[j];
                     break;
 
                     case 3:
                         // Alpha value (opaqueness).
-                        weightedSum += (double)myCanvas[j].a * myKernel[j];
+                        weightedSum += myCanvas[j].a * myKernel[j];
                     break;
 
                     default:
