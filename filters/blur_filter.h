@@ -124,6 +124,8 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
                 }
             break;
 
+            // Here is a comment between case 6 and 7 on line 127
+
             case 7:
                 if((y_coordinate + 1) < height) {
                     // If the bottom center kernel cell is NOT out of the bounds of the image.
