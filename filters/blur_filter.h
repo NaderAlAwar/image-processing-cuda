@@ -46,17 +46,32 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
     const int avgPixelSize = 4;
     int avgPixel[avgPixelSize];
 
-    // Declare the 3x3 filtering kernel.
-    const int kernelSize = 9;
+    // Declare the 5x5 filtering kernel.
+    const int kernelSize = 25;
     float myKernel[kernelSize];
 
     // Declare a "canvas" of pixels with the same dimensions as the filtering kernel.
     Pixel myCanvas[kernelSize];
 
     // Assign the weights of each filtering kernel value.
-    float center_coef = 0.25;
-    float adj_coef = 0.125;
-    float corner_coef = 0.0625;
+    float center_coef = 41;
+    float adj_coef_inner = 26;
+    float corner_coef_inner = 16;
+    float adj_coef_outer = 7;
+    float adj_corner_coef_outer = 4;
+    float corner_coef_outer = 1;
+
+    float scalability_factor = 1/273; // Factor to scale the filtering kernel values.
+
+    /* THE 5x5 FILTERING KERNEL
+    *
+    *   |   corner_coef_outer   | adj_corner_coef_outer | adj_coef_outer | adj_corner_coef_outer |   corner_coef_outer   |
+    *   | adj_corner_coef_outer |   corner_coef_inner   | adj_coef_inner |   corner_coef_inner   | adj_corner_coef_outer |
+    *   |     adj_coef_outer    |     adj_coef_inner    |   center_coef  |     adj_coef_inner    |     adj_coef_outer    |
+    *   | adj_corner_coef_outer |   corner_coef_inner   | adj_coef_inner |   corner_coef_inner   | adj_corner_coef_outer |
+    *   |   corner_coef_outer   | adj_corner_coef_outer | adj_coef_outer | adj_corner_coef_outer |   corner_coef_outer   |
+    *
+    */
 
     // Declare a value for filtering kernel weights to ignore (for cases when working with 
     // a pixel on the edge or in a corner of the image).
@@ -69,83 +84,189 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
     for(int i = 0; i < kernelSize; i++) {
         // Iterate through each filtering kernel cell and assign weights given the position of the pixel on the image.
         switch(i) {
-
+            
+            // 1st row
             case 0:
-                if(((x_coordinate - 1) >= 0) && ((y_coordinate - 1) >= 0)) {
-                    // If the top left kernel cell is NOT out of the bounds of the image.
-                    myKernel[i] = corner_coef;
-                    getPixel(input_image, width, x_coordinate-1, y_coordinate-1, &myCanvas[i]);
+                if(((x_coordinate - 2) >= 0) && ((y_coordinate - 2) >= 0)) {
+                    myKernel[i] = corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate-2, y_coordinate-2, &myCanvas[i]);
                 }
             break;
 
             case 1:
-                if((y_coordinate - 1) >= 0) {
-                    // If the top center kernel cell is NOT out of the bounds of the image.
-                    myKernel[i] = adj_coef;
-                    getPixel(input_image, width, x_coordinate, y_coordinate-1, &myCanvas[i]);
+                if((x_coordinate - 1) >= 0 && (y_coordinate - 2) >= 0) {
+                    myKernel[i] = adj_corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate-1, y_coordinate-2, &myCanvas[i]);
                 }
             break;
 
             case 2:
-                if(((x_coordinate + 1) < width) && ((y_coordinate - 1) >= 0)) {
-                    // If the top right kernel cell is NOT out of the bounds of the image.
-                    myKernel[i] = corner_coef;
-                    getPixel(input_image, width, x_coordinate+1, y_coordinate-1, &myCanvas[i]);
+                if((y_coordinate - 2) >= 0) {
+                    myKernel[i] = adj_coef_outer;
+                    getPixel(input_image, width, x_coordinate, y_coordinate-2, &myCanvas[i]);
                 }
             break;
 
             case 3:
-                if((x_coordinate - 1) >= 0) {
-                    // If the center left kernel cell is NOT out of the bounds of the image.
-                    myKernel[i] = adj_coef;
-                    getPixel(input_image, width, x_coordinate-1, y_coordinate, &myCanvas[i]);
+                if((x_coordinate + 1) < width && (y_coordinate - 2) >= 0) {
+                    myKernel[i] = adj_corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate+1, y_coordinate-2, &myCanvas[i]);
                 }
             break;
 
             case 4:
-                // No need to check - my cell must be in the kernel.
-                myKernel[i] = center_coef;
-                getPixel(input_image, width, x_coordinate, y_coordinate, &myCanvas[i]);
+                if((x_coordinate + 2) < width && (y_coordinate - 2) >= 0) {
+                    myKernel[i] = corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate+2, y_coordinate-2, &myCanvas[i]);
+                }
             break;
 
+            // 2nd row
             case 5:
-                if((x_coordinate + 1) < width) {
-                    // If the center right kernel cell is NOT out of the bounds of the image.
-                    myKernel[i] = adj_coef;
-                    getPixel(input_image, width, x_coordinate+1, y_coordinate, &myCanvas[i]);
+                if((x_coordinate - 2) >= 0 && (y_coordinate - 1) >= 0) {
+                    myKernel[i] = adj_corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate-2, y_coordinate-1, &myCanvas[i]);
                 }
             break;
 
             case 6:
-                if(((x_coordinate - 1) >= 0) && ((y_coordinate + 1) < height)) {
-                    // If the bottom left kernel cell is NOT out of the bounds of the image.
-                    myKernel[i] = corner_coef;
-                    getPixel(input_image, width, x_coordinate-1, y_coordinate+1, &myCanvas[i]);
+                if((x_coordinate - 1) >= 0 && (y_coordinate - 1) >= 0) {
+                    myKernel[i] = corner_coef_inner;
+                    getPixel(input_image, width, x_coordinate-1, y_coordinate-1, &myCanvas[i]);
                 }
             break;
 
-            // Here is a comment between case 6 and 7 on line 127
-
             case 7:
-                if((y_coordinate + 1) < height) {
-                    // If the bottom center kernel cell is NOT out of the bounds of the image.
-                    myKernel[i] = adj_coef;
-                    getPixel(input_image, width, x_coordinate, y_coordinate+1, &myCanvas[i]);
+                if((y_coordinate - 1) >= 0) {
+                    myKernel[i] = adj_coef_inner;
+                    getPixel(input_image, width, x_coordinate, y_coordinate-1, &myCanvas[i]);
                 }
             break;
 
             case 8:
-                if(((x_coordinate + 1) < width) && ((y_coordinate + 1) < height)) {
-                    // If the bottom right kernel cell is NOT out of the bounds of the image.
-                    myKernel[i] = corner_coef;
+                if((x_coordinate + 1) < width && (y_coordinate - 1) >= 0) {
+                    myKernel[i] = corner_coef_inner;
+                    getPixel(input_image, width, x_coordinate+1, y_coordinate-1, &myCanvas[i]);
+                }
+            break;
+
+            case 9:
+                if((x_coordinate + 2) < width && (y_coordinate - 1) >= 0) {
+                    myKernel[i] = adj_corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate+2, y_coordinate-1, &myCanvas[i]);
+                }
+            break;
+
+            // 3rd row
+            case 10:
+                if((x_coordinate - 2) >= 0) {
+                    myKernel[i] = adj_coef_outer;
+                    getPixel(input_image, width, x_coordinate-2, y_coordinate, &myCanvas[i]);
+                }
+            break;
+
+            case 11:
+                if((x_coordinate - 1) >= 0) {
+                    myKernel[i] = adj_coef_inner;
+                    getPixel(input_image, width, x_coordinate-1, y_coordinate, &myCanvas[i]);
+                }
+            break;
+
+            case 12:
+                // No need to check, my pixel cell must be in the image.
+                myKernel[i] = center_coef;
+                getPixel(input_image, width, x_coordinate, y_coordinate, &myCanvas[i]);
+            break;
+
+            case 13:
+                if((x_coordinate + 1) < width) {
+                    myKernel[i] = adj_coef_inner;
+                    getPixel(input_image, width, x_coordinate+1, y_coordinate, &myCanvas[i]);
+                }
+            break;
+
+            case 14:
+                if((x_coordinate + 2) < width) {
+                    myKernel[i] = adj_coef_outer;
+                    getPixel(input_image, width, x_coordinate+2, y_coordinate, &myCanvas[i]);
+                }
+            break;
+
+            // 4th row
+            case 15:
+                if((x_coordinate - 2) >= 0 && (y_coordinate + 1) < width) {
+                    myKernel[i] = adj_corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate-2, y_coordinate+1, &myCanvas[i]);
+                }
+            break;
+
+            case 16:
+                if((x_coordinate - 1) >= 0 && (y_coordinate + 1) < width) {
+                    myKernel[i] = corner_coef_inner;
+                    getPixel(input_image, width, x_coordinate-1, y_coordinate+1, &myCanvas[i]);
+                }
+            break;
+
+            case 17:
+                if((y_coordinate + 1) < width) {
+                    myKernel[i] = adj_coef_inner;
+                    getPixel(input_image, width, x_coordinate, y_coordinate+1, &myCanvas[i]);
+                }
+            break;
+
+            case 18:
+                if((x_coordinate + 1) < width && (y_coordinate + 1) < width) {
+                    myKernel[i] = corner_coef_inner;
                     getPixel(input_image, width, x_coordinate+1, y_coordinate+1, &myCanvas[i]);
+                }
+            break;
+
+            case 19:
+                if((x_coordinate + 2) < width && (y_coordinate + 1) < width) {
+                    myKernel[i] = adj_corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate+2, y_coordinate+1, &myCanvas[i]);
+                }
+            break;
+
+            // 5th row
+            case 20:
+                if((x_coordinate - 2) >= 0 && (y_coordinate + 2) < width) {
+                    myKernel[i] = corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate-2, y_coordinate+2, &myCanvas[i]);
+                }
+            break;
+
+            case 21:
+                if((x_coordinate - 1) >= 0 && (y_coordinate + 2) < width) {
+                    myKernel[i] = adj_corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate-1, y_coordinate+2, &myCanvas[i]);
+                }
+            break;
+
+            case 22:
+                if((y_coordinate + 2) < width) {
+                    myKernel[i] = adj_coef_outer;
+                    getPixel(input_image, width, x_coordinate, y_coordinate+2, &myCanvas[i]);
+                }
+            break;
+
+            case 23:
+                if((x_coordinate + 1) < width && (y_coordinate + 2) < width) {
+                    myKernel[i] = adj_corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate+1, y_coordinate+2, &myCanvas[i]);
+                }
+            break;
+
+            case 24:
+                if((x_coordinate + 2) < width && (y_coordinate + 2) < width) {
+                    myKernel[i] = corner_coef_outer;
+                    getPixel(input_image, width, x_coordinate+2, y_coordinate+2, &myCanvas[i]);
                 }
             break;
 
             default:
                 printf("ERROR at first switch case in blur_filter.h.\n");
             break;
-
         }
     }
 
@@ -195,7 +316,7 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
         }
 
         // Copy the weighted sum of the specified value to the pixel's specified value.
-        avgPixel[i] = (int)weightedSum;
+        avgPixel[i] = (int)(weightedSum*scalability_factor);
 
 
     }
