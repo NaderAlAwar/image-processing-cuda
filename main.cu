@@ -6,11 +6,15 @@
 #include "filters/sharpen_filter.h"
 #include "filters/vertical_flip_filter.h"
 #include "filters/horizontal_flip_filter.h"
+#include "filters/grayscale_filter.h"
+#include "filters/grayscale_weighted_filter.h"
 
 const char* BLUR_FILTER = "blur";
 const char* SHARPEN_FILTER = "sharpen";
 const char* VERTICAL_FLIP_FILTER = "vflip";
 const char* HORIZONTAL_FLIP_FILTER = "hflip";
+const char* GRAYSCALE_FILTER = "gray";
+const char* GRAYSCALE_WEIGHTED_FILTER = "grayweight";
 
 int main(int argc, const char* argv[]) {
     if (argc != 4) {
@@ -35,13 +39,23 @@ int main(int argc, const char* argv[]) {
     stbi_uc* filtered_image;
     if (strcmp(filter, BLUR_FILTER) == 0) {
         filtered_image = blur(image, width, height, channels);
-    } else if (strcmp(filter, SHARPEN_FILTER) == 0) {
+    } 
+    else if (strcmp(filter, SHARPEN_FILTER) == 0) {
         
-    } else if (strcmp(filter, VERTICAL_FLIP_FILTER) == 0) {
+    } 
+    else if (strcmp(filter, VERTICAL_FLIP_FILTER) == 0) {
         filtered_image = verticalFlip(image, width, height, channels);
-    } else if (strcmp(filter, HORIZONTAL_FLIP_FILTER) == 0) {
+    } 
+    else if (strcmp(filter, HORIZONTAL_FLIP_FILTER) == 0) {
         filtered_image = horizontalFlip(image, width, height, channels);
-    } else {
+    } 
+    else if (strcmp(filter, GRAYSCALE_FILTER) == 0) {
+        filtered_image = gray(image, width, height, channels);
+    } 
+    else if (strcmp(filter, GRAYSCALE_WEIGHTED_FILTER) == 0) {
+        filtered_image = grayWeight(image, width, height, channels);
+    } 
+    else {
         printf("Invalid filter %s.\n", filter);
     }
 

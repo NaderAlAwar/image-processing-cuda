@@ -3,7 +3,8 @@
 
 #include "../image.h"
 
-const int MAX_THREADS = 1024;
+const int MAX_THREADS = 1024;       // Nader's threads per block
+const int THREADS_PER_BLOCK = 256;  // Thomas' threads per block
 
 stbi_uc* zeroPadImage(stbi_uc* input_image, int &width, int &height, int channels, int filterSize);
 
