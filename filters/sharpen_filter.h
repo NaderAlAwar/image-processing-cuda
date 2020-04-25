@@ -25,6 +25,9 @@ stbi_uc* sharpen(stbi_uc* input_image, int width, int height, int channels) {
     stbi_uc* d_input_image;
     stbi_uc* d_output_image;
     stbi_uc* h_output_image = (stbi_uc*) malloc(image_size);
+    for (int i = 0; i < padded_width * padded_height; i++) {
+        h_output_image[i] = input_image[i];
+    }
 
     cudaMallocManaged(&d_input_image, image_size);
     cudaMallocManaged(&d_output_image, image_size);
@@ -51,10 +54,8 @@ __global__ void sharpen(stbi_uc* input_image, stbi_uc* output_image, int width, 
 
     int padding_size = mask_size / 2;
 
-    int y_coordinate = (thread_id / width) + mask_size / 2;
-    int x_coordinate = (thread_id % height) + mask_size / 2;
-    Pixel pixel;
-    getPixel(input_image, padded_width, x_coordinate, y_coordinate, &pixel);
+    int y_coordinate = (thread_id / width) + padding_size;
+    int x_coordinate = (thread_id % height) + padding_size;
 
     Pixel current_pixel;
     int red = 0;
@@ -64,6 +65,9 @@ __global__ void sharpen(stbi_uc* input_image, stbi_uc* output_image, int width, 
     for (int i = 0; i < mask_size; i++) {
         for (int j = 0; j < mask_size; j++) {
             getPixel(input_image, padded_width, x_coordinate - padding_size + i, y_coordinate - padding_size + j, &current_pixel);
+            if (thread_id == 0) {
+                printf("x %d y %d\n",  x_coordinate - padding_size + i, y_coordinate - padding_size + j);
+            }
             int mask_element = mask[i * mask_size + j];
 
             red += current_pixel.r * mask_element;
@@ -73,6 +77,7 @@ __global__ void sharpen(stbi_uc* input_image, stbi_uc* output_image, int width, 
         }
     }
 
+    Pixel pixel;
     if (red < 0) {
         pixel.r = 0;
     } else if (red > 255) {
@@ -89,13 +94,23 @@ __global__ void sharpen(stbi_uc* input_image, stbi_uc* output_image, int width, 
     }
     if (blue < 0) {
         pixel.b = 0;
-    } else if (red > 255) {
+    } else if (blue > 255) {
         pixel.b = 255;
     } else {
-        pixel.b = red;
+        pixel.b = blue;
+    }
+    if (alpha < 0) {
+        pixel.a = 0;
+    } else if (alpha > 255) {
+        pixel.a = 255;
+    } else {
+        pixel.a = alpha;
     }
 
-    setPixel(output_image, padded_width, x_coordinate, y_coordinate, &pixel);
+    if (thread_id == 0) {
+        printf("storing at %d %d", x_coordinate, y_coordinate);
+    }
+    setPixel(output_image, width, x_coordinate, y_coordinate, &pixel);
 }
 
 #endif
