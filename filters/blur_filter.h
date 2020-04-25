@@ -53,23 +53,42 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
     // Declare a "canvas" of pixels with the same dimensions as the filtering kernel.
     Pixel myCanvas[kernelSize];
 
-    // double scalability_factor = 0.003663003663; // Factor to scale the filtering kernel values.
-    // double scalability_factor = 0.05; // Factor to scale the filtering kernel values.
+    double scalability_factor; // Factor to scale the filtering kernel values.
+    double center_coef;
+    double adj_coef_inner;
+    double corner_coef_inner;
+    double adj_coef_outer;
+    double adj_corner_coef_outer;
+    double corner_coef_outer;
 
-    // Assign the weights of each filtering kernel value.
-    // double center_coef = 41 * scalability_factor;
-    // double adj_coef_inner = 26 * scalability_factor;
-    // double corner_coef_inner = 16 * scalability_factor;
-    // double adj_coef_outer = 7 * scalability_factor;
-    // double adj_corner_coef_outer = 4 * scalability_factor;
-    // double corner_coef_outer = 1 * scalability_factor;
+    bool gaussian = false;
 
-    double center_coef = 0.04;
-    double adj_coef_inner = 0.04;
-    double corner_coef_inner = 0.04;
-    double adj_coef_outer = 0.04;
-    double adj_corner_coef_outer = 0.04;
-    double corner_coef_outer = 0.04;
+    if(gaussian) { // Implement Gaussian Blur
+        scalability_factor = 0.003663003663; // Factor to scale the filtering kernel values.
+        center_coef = 41;
+        adj_coef_inner = 26;
+        corner_coef_inner = 16;
+        adj_coef_outer = 7;
+        adj_corner_coef_outer = 4;
+        corner_coef_outer = 1;
+    }
+
+    else { // Implement Box Blur
+        scalability_factor = 0.04; // Factor to scale the filtering kernel values.
+        center_coef = 1;
+        adj_coef_inner = 1;
+        corner_coef_inner = 1;
+        adj_coef_outer = 1;
+        adj_corner_coef_outer = 1;
+        corner_coef_outer = 1;
+    }
+
+    center_coef *= scalability_factor;
+    adj_coef_inner *= scalability_factor;
+    corner_coef_inner *= scalability_factor;
+    adj_coef_outer *= scalability_factor;
+    adj_corner_coef_outer *= scalability_factor;
+    corner_coef_outer *= scalability_factor;
 
     /* THE 5x5 FILTERING KERNEL
     *
@@ -89,12 +108,6 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
     for(int i = 0; i < kernelSize; i++) {
         myKernel[i] = cancel_coef;
     }
-
-    // if(x_coordinate == 0 && y_coordinate == 0) {
-    //     for(int i = 0; i < kernelSize; i++) {
-    //         printf("%f\n", myKernel[i]);
-    //     }
-    // }
 
     for(int i = 0; i < kernelSize; i++) {
         // Iterate through each filtering kernel cell and assign weights given the position of the pixel on the image.
@@ -285,15 +298,9 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
         }
     }
 
-    if(x_coordinate == 511 && y_coordinate == 0) {
-        for(int i = 0; i < kernelSize; i++) {
-            printf("kernel[%d] = %f\n", i, myKernel[i]);
-        }
-    }
-
     for(int i = 0; i < avgPixelSize; i++) {
         // Iterate through all values of the pixel (R, G, B, and A).
-        float weightedSum = 0;
+        double weightedSum = 0;
 
         for(int j = 0; j < kernelSize; j++) {
             // Iterate through each filtering kernel cell
@@ -302,22 +309,22 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
                 switch(i) {
                     case 0:
                         // Red value.
-                        weightedSum += myCanvas[j].r * myKernel[j];
+                        weightedSum += (double)myCanvas[j].r * myKernel[j];
                     break;
 
                     case 1:
                         // Green value.
-                        weightedSum += myCanvas[j].g * myKernel[j];
+                        weightedSum += (double)myCanvas[j].g * myKernel[j];
                     break;
 
                     case 2:
                         // Blue value.
-                        weightedSum += myCanvas[j].b * myKernel[j];
+                        weightedSum += (double)myCanvas[j].b * myKernel[j];
                     break;
 
                     case 3:
                         // Alpha value (opaqueness).
-                        weightedSum += myCanvas[j].a * myKernel[j];
+                        weightedSum += (double)myCanvas[j].a * myKernel[j];
                     break;
 
                     default:
@@ -326,41 +333,49 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
                 }
             }
 
-            // else {
-            //     // If the filtering kernel cell is NOT inside of the picture, assign zero.
-            //     double valueZero = 0;
-            //     myCanvas[j].r = valueZero;
-            //     myCanvas[j].g = valueZero;
-            //     myCanvas[j].b = valueZero;
-            //     myCanvas[j].a = valueZero;
-            // }
-
         }
 
         // Copy the weighted sum of the specified value to the pixel's specified value.
         avgPixel[i] = (int)(weightedSum);
-
-        if(x_coordinate == 511 && y_coordinate == 0) {
-            printf("avgPixel[%d] = %d\n", i, avgPixel[i]);
-            printf("weightedSum = %f\n", weightedSum);
-        }
-
 
     }
 
     // Declare the output pixel
     Pixel outPixel;
 
-    // Fill in its value fields.
+    // POSSIBLY IMPLEMENT THE FOLLOWING CODE FOR EDGE DETECTION 
+    // int sumAll = 0;
+    // bool scaleDown = false;
+    // for(int i = 0; i < avgPixelSize; i++) {
+    //     if(avgPixel[i] > 255) {
+    //         scaleDown = true;
+    //         sumAll += avgPixel[i];
+    //     }
+    // }
+    // if(!scaleDown) {
+    //     // Fill in its value fields.
+    //     outPixel.r = avgPixel[0];
+    //     outPixel.g = avgPixel[1];
+    //     outPixel.b = avgPixel[2];
+    //     outPixel.a = avgPixel[3];
+    // }
+    // else {
+    //     // Fill in its value fields.
+    //     outPixel.r = avgPixel[0]/sumAll*255;
+    //     outPixel.g = avgPixel[1]/sumAll*255;
+    //     outPixel.b = avgPixel[2]/sumAll*255;
+    //     outPixel.a = avgPixel[3]/sumAll*255;
+    // }
+
     outPixel.r = avgPixel[0];
     outPixel.g = avgPixel[1];
     outPixel.b = avgPixel[2];
     outPixel.a = avgPixel[3];
-    // outPixel.a = myCanvas[4].a;
+
 
     // OPTIONAL: Uncomment the following block and change x and y coordinates to print out the output pixels values
     //           of your choice.
-    // if(x_coordinate == 511 && y_coordinate == 0) {
+    // if(x_coordinate == 0 && y_coordinate == 0) {
     //     printf("\n\nr = %d\n", outPixel.r);
     //     printf("g = %d\n", outPixel.g);
     //     printf("b = %d\n", outPixel.b);
