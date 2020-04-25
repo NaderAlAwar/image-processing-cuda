@@ -11,4 +11,4 @@ module load cuda
 
 module load gcc/7.3.0
 
-cuda-memcheck ./a.out output_images/blur_lena.png output_images/blur_lena_2.png blur
+cuda-memcheck ./a.out images/lena_rgb.png output_images/grayscale_weighted_lena.png grayweight

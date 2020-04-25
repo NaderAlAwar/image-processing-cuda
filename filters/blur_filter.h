@@ -2,8 +2,7 @@
 #define BLUR_FILTER_H
 
 #include "../image.h"
-
-const int THREADS_PER_BLOCK = 256;
+#include "util.h"
 
 stbi_uc* blur(stbi_uc* input_image, int width, int height, int channels);
 __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads);
@@ -323,7 +322,7 @@ __global__ void blurKernel(stbi_uc* input_image, stbi_uc* output_image, int widt
                     break;
 
                     case 3:
-                        // Alpha value (opaqueness).
+                        // Alpha value (transparency).
                         weightedSum += myCanvas[j].a * myKernel[j];
                     break;
 

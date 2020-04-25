@@ -2,7 +2,7 @@
 #define VERTICAL_FLIP_FILTER_H
 
 #include "../image.h"
-
+#include "util.h"
 
 stbi_uc* verticalFlip(stbi_uc* input_image, int width, int height, int channels);
 __global__ void verticalFlip(stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads);
