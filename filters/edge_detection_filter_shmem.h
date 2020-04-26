@@ -84,7 +84,7 @@ __global__ void edgeDetectionShmem(const stbi_uc* input_image, stbi_uc* output_i
     const int x_coordinate = blockIdx.x * blockDim.x + threadIdx.x;
     const int y_coordinate = blockIdx.y * blockDim.y + threadIdx.y;
 
-    __shared__ stbi_uc data[shmem_size];
+    extern __shared__ stbi_uc data[];
     int padding_size = mask_size / 2;
     int shmem_x = threadIdx.x;
     int shmem_y = threadIdx.y;
