@@ -52,7 +52,6 @@ stbi_uc* edgeDetectionShmem(stbi_uc* input_image, int width, int height, int cha
     dim3 grid;
     grid.x = (width + block.x - 1) / block.x;
     grid.y = (width + block.y - 1) / block.y;
-    int padding_size = mask_size / 2;
     int shared_memory_size = MAX_THREADS * channels * sizeof(stbi_uc); 
 
     float time;

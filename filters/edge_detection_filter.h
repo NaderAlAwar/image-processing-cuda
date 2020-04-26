@@ -5,7 +5,8 @@
 #include "util.h"
 
 stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels);
-__global__ void edgeDetection(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int padded_width, int padded_height, int* mask, int mask_size);
+__device__ bool isOutOfBounds(int x, int y, int image_width, int image_height);
+__global__ void edgeDetection(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int* mask, int mask_size, int shmem_width);
 
 stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels) {
     int mask_x[] = {-1, 0, 1,
@@ -23,30 +24,31 @@ stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels
     cudaMemcpy(d_mask_x, mask_x, mask_size * mask_size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_mask_y, mask_y, mask_size * mask_size * sizeof(int), cudaMemcpyHostToDevice);
 
-    int padded_width = width;
-    int padded_height = height;
-    stbi_uc* padded_image = zeroPadImage(input_image, padded_width, padded_height, channels, mask_size);
-
-    int image_size = channels * padded_width * padded_height * sizeof(stbi_uc);
+    int image_size = channels * width * height * sizeof(stbi_uc);
     stbi_uc* d_input_image;
     stbi_uc* d_output_image_x;
     stbi_uc* d_output_image_y;
     stbi_uc* h_output_image = (stbi_uc*) malloc(image_size);
-    for (int i = 0; i < padded_width * padded_height; i++) {
+    for (int i = 0; i < width * height * channels; i++) {
         h_output_image[i] = input_image[i];
     }
 
     cudaMallocManaged(&d_input_image, image_size);
     cudaMallocManaged(&d_output_image_x, image_size);
     cudaMallocManaged(&d_output_image_y, image_size);
-    cudaMemcpy(d_input_image, padded_image, image_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_output_image_x, padded_image, image_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_output_image_y, padded_image, image_size, cudaMemcpyHostToDevice);
-    imageFree(padded_image);
+    cudaMemcpy(d_input_image, input_image, image_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_output_image_x, input_image, image_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_output_image_y, input_image, image_size, cudaMemcpyHostToDevice);
 
     int total_threads = width * height;
     int threads = min(MAX_THREADS, total_threads);
     int blocks = (threads == total_threads) ? 1 : total_threads / MAX_THREADS;
+
+    int square_root = (int) sqrt(threads);
+    dim3 block(32, 32);
+    dim3 grid;
+    grid.x = (width + block.x - 1) / block.x;
+    grid.y = (width + block.y - 1) / block.y;
 
     printf("Blocks %d, threads %d, total threads %d\n", blocks, threads, total_threads);
     float time;
@@ -54,9 +56,9 @@ stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start);
-    edgeDetection<<<blocks, threads>>>(d_input_image, d_output_image_x, width, height, channels, total_threads, padded_width, padded_height, d_mask_x, mask_size);
+    edgeDetection<<<grid, block>>>(d_input_image, d_output_image_x, width, height, channels, total_threads, d_mask_x, mask_size, square_root);
     cudaDeviceSynchronize();
-    edgeDetection<<<blocks, threads>>>(d_output_image_x, d_output_image_y, padded_width, padded_height, channels, total_threads, padded_width, padded_height, d_mask_y, mask_size);
+    edgeDetection<<<grid, block>>>(d_output_image_x, d_output_image_y, width, height, channels, total_threads, d_mask_y, mask_size, square_root);
     cudaEventRecord(stop); 
     cudaEventSynchronize(stop); 
     cudaEventElapsedTime(&time, start, stop);
@@ -66,16 +68,11 @@ stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels
     return h_output_image;
 }
 
-__global__ void edgeDetection(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int padded_width, int padded_height, int* mask, int mask_size) {
-    const int thread_id = threadIdx.x + blockDim.x * blockIdx.x;
-    if (thread_id >= total_threads) {
-        return;
-    }
+__global__ void edgeDetection(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int* mask, int mask_size, int shmem_width) {
+    const int x_coordinate = blockIdx.x * blockDim.x + threadIdx.x;
+    const int y_coordinate = blockIdx.y * blockDim.y + threadIdx.y;
     
     int padding_size = mask_size / 2;
-
-    int y_coordinate = (thread_id / width) + padding_size;
-    int x_coordinate = (thread_id % height) + padding_size;
 
     Pixel current_pixel;
     int red = 0;
@@ -84,18 +81,22 @@ __global__ void edgeDetection(const stbi_uc* input_image, stbi_uc* output_image,
     int alpha = 0;
     for (int i = 0; i < mask_size; i++) {
         for (int j = 0; j < mask_size; j++) {
-            getPixel(input_image, padded_width, x_coordinate - padding_size + i, y_coordinate - padding_size + j, &current_pixel);
+            int current_x_global = x_coordinate - padding_size + i;
+            int current_y_global = y_coordinate - padding_size + j;
+            if (isOutOfBounds(current_x_global, current_y_global, width, height)) {
+                continue;
+            }
+            getPixel(input_image, width, current_x_global, current_y_global, &current_pixel);
             int mask_element = mask[i * mask_size + j];
 
             red += current_pixel.r * mask_element;
             green += current_pixel.g * mask_element;
             blue += current_pixel.b * mask_element;
-            alpha += current_pixel.a * mask_element;
         }
     }
 
     Pixel pixel;
-    getPixel(input_image, padded_width, x_coordinate, y_coordinate, &pixel);
+    // getPixel(input_image, padded_width, x_coordinate, y_coordinate, &pixel);
     if (red < 0) {
         pixel.r = 0;
     } else if (red > 255) {
