@@ -6,7 +6,6 @@
 
 stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels);
 __global__ void edgeDetection(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int padded_width, int padded_height, int* mask, int mask_size);
-__global__ void edgeDetection2(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int padded_width, int padded_height, int* mask, int mask_size);
 
 stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels) {
     int mask_x[] = {-1, 0, 1,
@@ -50,10 +49,18 @@ stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels
     int blocks = (threads == total_threads) ? 1 : total_threads / MAX_THREADS;
 
     printf("Blocks %d, threads %d, total threads %d\n", blocks, threads, total_threads);
+    float time;
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
     edgeDetection<<<blocks, threads>>>(d_input_image, d_output_image_x, width, height, channels, total_threads, padded_width, padded_height, d_mask_x, mask_size);
     cudaDeviceSynchronize();
     edgeDetection<<<blocks, threads>>>(d_output_image_x, d_output_image_y, padded_width, padded_height, channels, total_threads, padded_width, padded_height, d_mask_y, mask_size);
-    cudaDeviceSynchronize();
+    cudaEventRecord(stop); 
+    cudaEventSynchronize(stop); 
+    cudaEventElapsedTime(&time, start, stop);
+    printf("Naive: %f\n", time);
 
     cudaMemcpy(h_output_image, d_output_image_y, image_size, cudaMemcpyDeviceToHost);
     return h_output_image;
