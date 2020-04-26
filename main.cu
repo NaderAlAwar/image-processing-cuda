@@ -8,6 +8,7 @@
 #include "filters/horizontal_flip_filter.h"
 #include "filters/grayscale_filter.h"
 #include "filters/grayscale_weighted_filter.h"
+#include "filters/edge_detection_filter.h"
 
 const char* BLUR_FILTER = "blur";
 const char* SHARPEN_FILTER = "sharpen";
@@ -15,6 +16,7 @@ const char* VERTICAL_FLIP_FILTER = "vflip";
 const char* HORIZONTAL_FLIP_FILTER = "hflip";
 const char* GRAYSCALE_FILTER = "gray";
 const char* GRAYSCALE_WEIGHTED_FILTER = "grayweight";
+const char* EDGE_DETECTION_FILTER = "edge";
 
 int main(int argc, const char* argv[]) {
     if (argc != 4) {
@@ -43,17 +45,15 @@ int main(int argc, const char* argv[]) {
         filtered_image = sharpen(image, width, height, channels);
     } else if (strcmp(filter, VERTICAL_FLIP_FILTER) == 0) {
         filtered_image = verticalFlip(image, width, height, channels);
-    } 
-    else if (strcmp(filter, HORIZONTAL_FLIP_FILTER) == 0) {
+    } else if (strcmp(filter, HORIZONTAL_FLIP_FILTER) == 0) {
         filtered_image = horizontalFlip(image, width, height, channels);
-    } 
-    else if (strcmp(filter, GRAYSCALE_FILTER) == 0) {
+    } else if (strcmp(filter, GRAYSCALE_FILTER) == 0) {
         filtered_image = gray(image, width, height, channels);
-    } 
-    else if (strcmp(filter, GRAYSCALE_WEIGHTED_FILTER) == 0) {
+    } else if (strcmp(filter, GRAYSCALE_WEIGHTED_FILTER) == 0) {
         filtered_image = grayWeight(image, width, height, channels);
-    } 
-    else {
+    } else if (strcmp(filter, EDGE_DETECTION_FILTER) == 0) {
+        filtered_image = edgeDetection(image, width, height, channels);
+    }  else {
         printf("Invalid filter %s.\n", filter);
     }
 

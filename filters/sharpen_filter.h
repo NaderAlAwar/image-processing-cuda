@@ -65,9 +65,6 @@ __global__ void sharpen(stbi_uc* input_image, stbi_uc* output_image, int width, 
     for (int i = 0; i < mask_size; i++) {
         for (int j = 0; j < mask_size; j++) {
             getPixel(input_image, padded_width, x_coordinate - padding_size + i, y_coordinate - padding_size + j, &current_pixel);
-            if (thread_id == 0) {
-                printf("x %d y %d\n",  x_coordinate - padding_size + i, y_coordinate - padding_size + j);
-            }
             int mask_element = mask[i * mask_size + j];
 
             red += current_pixel.r * mask_element;
@@ -107,9 +104,6 @@ __global__ void sharpen(stbi_uc* input_image, stbi_uc* output_image, int width, 
         pixel.a = alpha;
     }
 
-    if (thread_id == 0) {
-        printf("storing at %d %d", x_coordinate, y_coordinate);
-    }
     setPixel(output_image, width, x_coordinate, y_coordinate, &pixel);
 }
 
