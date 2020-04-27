@@ -18,6 +18,7 @@ stbi_uc* edgeDetectionShmem(stbi_uc* input_image, int width, int height, int cha
     int mask_y[] = {1,  2,  1,
                     0,  0,  0,
                    -1, -2, -1};
+
     int mask_size = 3;
     int* d_mask_x;
     int* d_mask_y;

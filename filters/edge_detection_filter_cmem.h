@@ -1,14 +1,18 @@
-#ifndef EDGE_DETECTION_FILTER_H
-#define EDGE_DETECTION_FILTER_H
+#ifndef EDGE_DETECTION_FILTER_CMEM_H
+#define EDGE_DETECTION_FILTER_CMEM_H
 
 #include "../image.h"
 #include "util.h"
 
-stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels);
-__device__ bool isOutOfBounds(int x, int y, int image_width, int image_height);
-__global__ void edgeDetection(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int* mask, int mask_size, int shmem_width);
 
-stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels) {
+__constant__ int constant_mask_x[9];
+__constant__ int constant_mask_y[9];
+
+stbi_uc* edgeDetectionCmem(stbi_uc* input_image, int width, int height, int channels);
+__device__ bool isOutOfBounds(int x, int y, int image_width, int image_height);
+__global__ void edgeDetectionCmem(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int* mask, int mask_size, int shmem_width);
+
+stbi_uc* edgeDetectionCmem(stbi_uc* input_image, int width, int height, int channels) {
     int mask_x[] = {-1, 0, 1,
                     -2, 0, 2,
                     -1, 0, 1};
@@ -24,6 +28,8 @@ stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels
     cudaMallocManaged(&d_mask_y, mask_size * mask_size * sizeof(int));
     cudaMemcpy(d_mask_x, mask_x, mask_size * mask_size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_mask_y, mask_y, mask_size * mask_size * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(constant_mask_x, mask_x, mask_size * mask_size * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(constant_mask_x, mask_y, mask_size * mask_size * sizeof(int), cudaMemcpyHostToDevice);
 
     int image_size = channels * width * height * sizeof(stbi_uc);
     stbi_uc* d_input_image;
@@ -63,13 +69,13 @@ stbi_uc* edgeDetection(stbi_uc* input_image, int width, int height, int channels
     cudaEventRecord(stop); 
     cudaEventSynchronize(stop); 
     cudaEventElapsedTime(&time, start, stop);
-    printf("Naive: %f\n", time);
+    printf("Constant memory: %f\n", time);
 
     cudaMemcpy(h_output_image, d_output_image_y, image_size, cudaMemcpyDeviceToHost);
     return h_output_image;
 }
 
-__global__ void edgeDetection(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int* mask, int mask_size, int shmem_width) {
+__global__ void edgeDetectionCmem(const stbi_uc* input_image, stbi_uc* output_image, int width, int height, int channels, int total_threads, int* mask, int mask_size, int shmem_width) {
     const int x_coordinate = blockIdx.x * blockDim.x + threadIdx.x;
     const int y_coordinate = blockIdx.y * blockDim.y + threadIdx.y;
     
@@ -88,7 +94,7 @@ __global__ void edgeDetection(const stbi_uc* input_image, stbi_uc* output_image,
                 continue;
             }
             getPixel(input_image, width, current_x_global, current_y_global, &current_pixel);
-            int mask_element = mask[i * mask_size + j];
+            int mask_element = constant_mask_x[i * mask_size + j];
 
             red += current_pixel.r * mask_element;
             green += current_pixel.g * mask_element;
