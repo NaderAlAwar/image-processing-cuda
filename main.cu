@@ -9,9 +9,6 @@
 #include "filters/grayscale_filter.h"
 #include "filters/grayscale_weighted_filter.h"
 #include "filters/edge_detection_filter.h"
-#include "filters/edge_detection_filter_shmem.h"
-#include "filters/edge_detection_filter_cmem.h"
-#include "filters/edge_detection_filter_texmem.h"
 
 const char* BLUR_FILTER = "blur";
 const char* SHARPEN_FILTER = "sharpen";
@@ -56,9 +53,9 @@ int main(int argc, const char* argv[]) {
         filtered_image = grayWeight(image, width, height, channels);
     } else if (strcmp(filter, EDGE_DETECTION_FILTER) == 0) {
         filtered_image = edgeDetection(image, width, height, channels);
-        filtered_image = edgeDetectionCmem(image, width, height, channels);
-        filtered_image = edgeDetectionShmem(image, width, height, channels);
-        filtered_image = edgeDetectionTexmem(image, width, height, channels);
+        filtered_image = edgeDetectionConstantMemory(image, width, height, channels);
+        filtered_image = edgeDetectionSharedMemory(image, width, height, channels);
+        // filtered_image = edgeDetectionTextureMemory(image, width, height, channels);
     }  else {
         printf("Invalid filter %s.\n", filter);
     }

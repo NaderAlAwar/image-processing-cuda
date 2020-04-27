@@ -7,6 +7,7 @@ const int MAX_THREADS = 1024;       // Nader's threads per block
 const int THREADS_PER_BLOCK = 256;  // Thomas' threads per block
 
 stbi_uc* zeroPadImage(stbi_uc* input_image, int &width, int &height, int channels, int filter_size);
+__device__ bool isOutOfBounds(int x, int y, int image_width, int image_height);
 
 stbi_uc* zeroPadImage(stbi_uc* input_image, int &width, int &height, int channels, int filter_size) {
     int half_filter_size = filter_size / 2;
@@ -33,6 +34,14 @@ stbi_uc* zeroPadImage(stbi_uc* input_image, int &width, int &height, int channel
     height = padded_height;
 
     return padded_image;
+}
+
+__device__ bool isOutOfBounds(int x, int y, int image_width, int image_height) {
+    if (x < 0 || y < 0 || x >= image_width || y >= image_height) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 #endif
