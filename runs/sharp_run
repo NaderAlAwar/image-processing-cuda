@@ -11,4 +11,4 @@ module load cuda
 
 module load gcc/7.3.0
 
-cuda-memcheck ./a.out images/lena_rgb.png output_images/sharp_lena.png sharpen
+cuda-memcheck ./a.out images/lena_rgb.png output_images/sharp_lena.png sharpen single
