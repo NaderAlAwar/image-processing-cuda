@@ -95,7 +95,7 @@ stbi_uc* convolve(const stbi_uc* input_image, int width, int height, int channel
     cudaEventRecord(stop); 
     cudaEventSynchronize(stop); 
     cudaEventElapsedTime(&time, start, stop);
-    printf("%d,%d,%f\n", memory, mask_dimension, time);
+    printf("Time: %f\n", time);
 
     cudaMemcpy(h_output_image, d_output_image, image_size, cudaMemcpyDeviceToHost);
     return h_output_image;

@@ -39,7 +39,6 @@ int main(int argc, const char* argv[]) {
 
         int width, height, channels;
         stbi_uc* image = loadImage(path_to_input_image, &width, &height, &channels);
-        
         if (image == NULL) {
             printf("Could not load image %s.\n", path_to_input_image);
             return 1;
@@ -60,9 +59,9 @@ int main(int argc, const char* argv[]) {
             filtered_image = grayWeight(image, width, height, channels);
         } else if (strcmp(filter, EDGE_DETECTION_FILTER) == 0) {
             filtered_image = edgeDetection(image, width, height, channels);
-            filtered_image = edgeDetectionConstantMemory(image, width, height, channels);
-            filtered_image = edgeDetectionSharedMemory(image, width, height, channels);
+            // filtered_image = edgeDetectionSharedMemory(image, width, height, channels);
             // filtered_image = edgeDetectionTextureMemory(image, width, height, channels);
+            // filtered_image = edgeDetectionConstantMemory(image, width, height, channels);
         }  else {
             printf("Invalid filter %s.\n", filter);
         }
