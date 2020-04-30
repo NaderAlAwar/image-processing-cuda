@@ -31,6 +31,17 @@ will take some time. Compare any image in the output/batch/ directory to
 If you prefer not to run our scripts, you can run each command in the
 scripts one by one instead.
 
+### Repository structure
+
+main.cu simply parses arguments and calls the necessary filters
+stb_image/ contains the image library we used.
+image.h is our wrapper for the image library.
+filters/ contains each filter implemented in a header file
+filters/convolve.h is called from every convolution filter.
+Other filters have their own kernels.
+expected_output/ stores the expected_output of each filter
+images/lena_rgb.png is the input image for all our test cases.
+
 ### Introduction
 
 Note: You must have the ability to run CUDA files on your end in order to render any of the work in this repository. For more information about CUDA, please visit this link: https://developer.nvidia.com/about-cuda
