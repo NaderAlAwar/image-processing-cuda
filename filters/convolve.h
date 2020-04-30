@@ -139,7 +139,7 @@ stbi_uc** convolveBatch(stbi_uc** input_images, int input_size, int width, int h
         for (int j = 0; j < width * height * channels; j++) {
             h_output_images[i][j] = 0;
         }
-
+        
         CUDA_CHECK_RETURN(cudaMallocManaged(&temp_input_images[i], image_size));
         CUDA_CHECK_RETURN(cudaMallocManaged(&temp_output_images[i], image_size));
         CUDA_CHECK_RETURN(cudaMemcpy(temp_input_images[i], input_images[i], image_size, cudaMemcpyHostToDevice));

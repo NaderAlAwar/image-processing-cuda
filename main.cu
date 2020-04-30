@@ -2,6 +2,7 @@
 #include <string.h>
 #include <dirent.h> 
 #include <string.h>
+#include <stdlib.h>
 
 #include "image.h"
 #include "filters/blur_filter.h"
@@ -70,7 +71,7 @@ int main(int argc, const char* argv[]) {
         imageFree(image);
         imageFree(filtered_image);
     } else if (strcmp(mode, BATCH_MODE) == 0) {
-        int MAX_IMAGES = 2000;
+        int MAX_IMAGES = 100;
         int image_count = 0;
         stbi_uc** images = (stbi_uc**) malloc(MAX_IMAGES * sizeof(stbi_uc*));
 
@@ -92,24 +93,18 @@ int main(int argc, const char* argv[]) {
             if (entry->d_type == DT_REG) {
                 char input_file[1024];
                 sprintf(input_file, "%s%s", path_to_input_image, entry->d_name);
-                // printf("Read %s\n", input_file);
                 images[image_count] = loadImage(input_file, &width, &height, &channels);
                 image_count++;
             }
         }
         closedir(input_directory);
         printf("Read %d images\n", image_count);
-
         clock_t begin = clock();
         stbi_uc** filtered_images = edgeDetectionBatchStreams(images, image_count, width, height, channels);
         clock_t end = clock();
         double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
         printf("streams time %f\n", time_spent);
-        begin = clock();
-        filtered_images = edgeDetectionBatchSequential(images, image_count, width, height, channels);
-        end = clock();
-        time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-        printf("sequential time %f\n", time_spent);
+
         for (int i = 0; i < image_count; i++) {
             char output_file[100];
 
