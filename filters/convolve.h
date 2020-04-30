@@ -95,7 +95,7 @@ stbi_uc* convolve(const stbi_uc* input_image, int width, int height, int channel
     cudaEventRecord(stop); 
     cudaEventSynchronize(stop); 
     cudaEventElapsedTime(&time, start, stop);
-    printf("Time: %f\n", time);
+    printf("%d,%d,%f\n", memory, mask_dimension, time);
 
     cudaMemcpy(h_output_image, d_output_image, image_size, cudaMemcpyDeviceToHost);
     return h_output_image;
@@ -116,6 +116,15 @@ stbi_uc** convolveBatch(stbi_uc** input_images, int input_size, int width, int h
     // uchar4 *d_vector;
     // cudaMalloc(&d_vector, channels * width * height * sizeof(uchar4));
     // cudaBindTexture2D(NULL, texture_reference, d_vector, channelDesc, width, height, width * sizeof(uchar4));
+
+    cudaStream_t* streams = (cudaStream_t*) malloc(input_size * sizeof(cudaStream_t));
+    for (int i = 0; i < input_size; i++) {
+        cudaStreamCreate(&streams[i]);
+        if (!batch) {
+            streams[i] = 0;
+        }
+    }
+
 
     int image_size = channels * width * height * sizeof(stbi_uc);
     stbi_uc** d_input_images;
@@ -148,13 +157,6 @@ stbi_uc** convolveBatch(stbi_uc** input_images, int input_size, int width, int h
     grid.x = (width + block.x - 1) / block.x;
     grid.y = (width + block.y - 1) / block.y;
 
-    cudaStream_t* streams = (cudaStream_t*) malloc(input_size * sizeof(cudaStream_t));
-    for (int i = 0; i < input_size; i++) {
-        cudaStreamCreate(&streams[i]);
-        if (!batch) {
-            streams[i] = 0;
-        }
-    }
 
     // For shared memory
     int shared_memory_size = threads * channels * sizeof(stbi_uc); 
@@ -181,7 +183,7 @@ stbi_uc** convolveBatch(stbi_uc** input_images, int input_size, int width, int h
     CUDA_CHECK_RETURN(cudaMemcpy(h_output_images, d_output_images, sizeof(stbi_uc*), cudaMemcpyDeviceToHost));
 
     for (int i = 0; i < input_size; i++) {
-        CUDA_CHECK_RETURN(cudaMemcpy(h_output_images[i], d_output_images[i], image_size, cudaMemcpyDeviceToHost));
+        CUDA_CHECK_RETURN(cudaMemcpyAsync(h_output_images[i], d_output_images[i], image_size, cudaMemcpyDeviceToHost, streams[i]));
         // CUDA_CHECK_RETURN(cudaStreamDestroy(streams[i]));
     }
     cudaDeviceSynchronize();
@@ -198,7 +200,7 @@ __global__ void convolve(const stbi_uc* input_image, stbi_uc* output_image, cons
     int red = 0;
     int blue = 0;
     int green = 0;
-    int alpha = 0;
+    // int alpha = 0;
     for (int i = 0; i < mask_dimension; i++) {
         for (int j = 0; j < mask_dimension; j++) {
             int current_x_global = x_coordinate - half_mask_size + i;
@@ -258,7 +260,7 @@ __global__ void convolveSharedMemory(const stbi_uc* input_image, stbi_uc* output
     int red = 0;
     int blue = 0;
     int green = 0;
-    int alpha = 0;
+    // int alpha = 0;
     for (int i = 0; i < mask_dimension; i++) {
         for (int j = 0; j < mask_dimension; j++) {
             int current_x_global = x_coordinate - half_mask_size + i;
@@ -319,7 +321,7 @@ __global__ void convolveConstantMemory(const stbi_uc* input_image, stbi_uc* outp
     int red = 0;
     int blue = 0;
     int green = 0;
-    int alpha = 0;
+    // int alpha = 0;
     for (int i = 0; i < constant_mask_dimension; i++) {
         for (int j = 0; j < constant_mask_dimension; j++) {
             int current_x_global = x_coordinate - half_mask_size + i;
@@ -371,7 +373,7 @@ __global__ void convolveTextureMemory(const stbi_uc* input_image, stbi_uc* outpu
     int red = 0;
     int blue = 0;
     int green = 0;
-    int alpha = 0;
+    // int alpha = 0;
     for (int i = 0; i < mask_dimension; i++) {
         for (int j = 0; j < mask_dimension; j++) {
             int current_x_global = x_coordinate - half_mask_size + i;
